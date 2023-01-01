@@ -21,7 +21,6 @@ Set<Shift> highestHelper(const Set<Shift> &shifts, const Set<Shift> &res, int ho
 {
     if (hourRemain < 0)
     {
-        error("Hour could not be negtive.");
         return {};
     }
     if (shifts.isEmpty())
@@ -38,23 +37,27 @@ Set<Shift> highestHelper(const Set<Shift> &shifts, const Set<Shift> &res, int ho
             if (overlapsWith(elem, cur))
                 conflict = true;
         }
-        if (curHour <= hourRemain && !conflict)
+
+        Set<Shift> withOutCur = highestHelper(shifts - cur, res, hourRemain);
+        int withOutVal = sumValueOf(withOutCur);
+
+        Set<Shift> withCur = {};
+        int withVal = 0;
+        if (!conflict)
         {
-            Set<Shift> withOutCur = highestHelper(shifts - cur, res, hourRemain);
-            Set<Shift> withCur = highestHelper(shifts - cur, res + cur, hourRemain - curHour);
-            int withOutVal = sumValueOf(withOutCur);
-            int withVal = sumValueOf(withCur);
-            return withOutVal > withVal ? withOutCur : withCur;
+            withCur = highestHelper(shifts - cur, res + cur, hourRemain - curHour);
+            withVal = sumValueOf(withCur);
         }
-        else
-        {
-            return highestHelper(shifts - cur, res, hourRemain);
-        }
+        return withOutVal >= withVal ? withOutCur : withCur;
     }
 }
 Set<Shift> highestValueScheduleFor(const Set<Shift> &shifts, int maxHours)
 {
     /* TODO: Delete the next few lines and implement this function. */
+    if (maxHours < 0)
+        error("Hour could not be negtive.");
+    else if (maxHours == 0)
+        return {};
     return highestHelper(shifts, {}, maxHours);
 }
 
