@@ -1,44 +1,95 @@
 #include "Matchmaker.h"
+#include "set.h"
 using namespace std;
 
-bool hasPerfectMatching(const Map<string, Set<string>> &possibleLinks, Set<Pair> &matching)
+Set<Pair> allPossiblePairsWithoutWeight(const Map<string, Set<string>> &possibleLinks)
 {
-    /* TODO: Delete this comment and these remaining lines, then implement this function. */
-    if (possibleLinks.size() == 0)
-        return true;
-    if (possibleLinks.size() % 2 != 0)
-        return false;
-    string curPerson = possibleLinks.firstKey();
-    for (string matchPerson : possibleLinks[curPerson])
+    Set<Pair> possiblePairs;
+    for (const string &curPerson : possibleLinks)
     {
-        bool hasMatched = false;
-        for (Pair matchedPairs : matching)
-        {
-            if (matchedPairs.first() == matchPerson || matchedPairs.second() == matchPerson)
-            {
-                hasMatched = true;
-                break;
-            }
-        }
-        if (!hasMatched)
+        for (const string &matchPerson : possibleLinks[curPerson])
         {
             Pair newPair(curPerson, matchPerson);
-            matching += newPair;
-
-            Map<string, Set<string>> personRemains = possibleLinks;
-            personRemains.remove(curPerson);
-            personRemains.remove(matchPerson);
-            if (hasPerfectMatching(personRemains, matching))
+            Pair symPair(matchPerson, curPerson);
+            if (!possiblePairs.contains(symPair))
             {
-                return true;
-            }
-            else
-            {
-                matching.remove(newPair);
+                possiblePairs.add(newPair);
             }
         }
     }
+    return possiblePairs;
+}
+bool hasPerfectMatchingRec(const Set<Pair> &possiblePairs, Set<Pair> &soFar, int &len)
+{
+    if (possiblePairs.isEmpty())
+    {
+        if (soFar.size() == len)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        Pair curPair = possiblePairs.first();
+
+        // branch1: perfect match result contains curPair.
+        Set<Pair> withRemain = possiblePairs;
+        for (const Pair &elem : possiblePairs)
+        {
+            if (elem.first() == curPair.first() || elem.second() == curPair.first() || elem.first() == curPair.second() || elem.second() == curPair.second())
+            {
+                withRemain.remove(elem);
+            }
+        }
+        soFar.add(curPair);
+        if (hasPerfectMatchingRec(withRemain, soFar, len))
+        {
+            return true;
+        }
+        else
+        {
+            // branch2: final match result doesn't contain curPair.
+            soFar.remove(curPair);
+            Set<Pair> withoutReamin = possiblePairs;
+            withoutReamin.remove(curPair);
+            return hasPerfectMatchingRec(withoutReamin, soFar, len);
+        }
+    }
     return false;
+}
+
+bool hasPerfectMatching(const Map<string, Set<string>> &possibleLinks, Set<Pair> &matching)
+{
+    int len = possibleLinks.size();
+    if (len == 0)
+        return true;
+    if (len % 2 != 0)
+        return false;
+    Set<Pair> possiblePairs = allPossiblePairsWithoutWeight(possibleLinks);
+    len /= 2;
+    return hasPerfectMatchingRec(possiblePairs, matching, len);
+}
+
+Map<Pair, int> allPossiblePairs(const Map<string, Map<string, int>> &possibleLinks)
+{
+    Map<Pair, int> possiblePairs;
+    for (const string &curPerson : possibleLinks)
+    {
+        for (const string &matchPerson : possibleLinks[curPerson])
+        {
+            Pair newPair(curPerson, matchPerson);
+            Pair symPair(matchPerson, curPerson);
+            if (!possiblePairs.containsKey(symPair))
+            {
+                possiblePairs.put(newPair, possibleLinks[curPerson][matchPerson]);
+            }
+        }
+    }
+    return possiblePairs;
 }
 
 void maximumWeightMatchingRec(const Map<Pair, int> &possiblePairs, const Set<Pair> &matching,
@@ -73,24 +124,6 @@ void maximumWeightMatchingRec(const Map<Pair, int> &possiblePairs, const Set<Pai
         }
         maximumWeightMatchingRec(withRemain, matching + newPair, weight + possiblePairs[newPair], maxWeightMatching, maxWeight);
     }
-}
-
-Map<Pair, int> allPossiblePairs(const Map<string, Map<string, int>> &possibleLinks)
-{
-    Map<Pair, int> possiblePairs;
-    for (const string &curPerson : possibleLinks)
-    {
-        for (const string &matchPerson : possibleLinks[curPerson])
-        {
-            Pair newPair(curPerson, matchPerson);
-            Pair symPair(matchPerson, curPerson);
-            if (!possiblePairs.containsKey(symPair))
-            {
-                possiblePairs.put(newPair, possibleLinks[curPerson][matchPerson]);
-            }
-        }
-    }
-    return possiblePairs;
 }
 
 Set<Pair> maximumWeightMatching(const Map<string, Map<string, int>> &possibleLinks)
